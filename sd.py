@@ -12,31 +12,53 @@
 import sys, os
 from bs4 import BeautifulSoup as Soup       # pip install beatifulsoup4
 from pyperclip import paste                 # pip install pyperclip
-from urllib.parse import urlparse, urljoin  
+from urllib.parse import urlparse, urljoin
 from requests import get                    # pip install requests
-from webbrowser import open as OP           
+import requests.exceptions as rex
+from webbrowser import open as OP
 import scidownl.scihub as sci               # pip install scidownl
 
 F_data, F_abstract, L_list, Link, PDFlink = '','','','',''
-header = {'User-Agent':'Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 YaBrowser/19.7.3.172 Yowser/2.5 Safari/537.36'}
+
+def brexit():
+  input('Press Enter to exit')
+  sys.exit()
 
 class Sd:
 
+  def res(self):
+    try:
+      r = get(self, headers = {'User-Agent':'Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 YaBrowser/19.7.3.172 Yowser/2.5 Safari/537.36'})
+      r.raise_for_status()
+      return r
+    except rex.HTTPError as http:
+      print ("Http Error:",http)
+      brexit()
+    except rex.ConnectionError as cne:
+      print ("Error Connecting:",cne)
+      brexit()
+    except rex.Timeout as to:
+      print ("Timeout Error:",to)
+      brexit()
+    except rex.RequestException as err:
+      print (err)
+      brexit()
+
   def search(self): # term search results as pmid
     T = f'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term={self}[Title]&retmax=100'
-    Tr = get(T)
+    Tr = Sd.res(T)
     Ts = Soup(Tr.text,'html.parser')
     return Ts
 
   def fetch(self): # id search results as title, abstract etc.
     I = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={self}&retmode=xml'
-    Ir = get(I)
+    Ir = Sd.res(I)
     Is = Soup(Ir.text,'html.parser')
     return Is
 
   def link(self): # brings similar articles' ids
     L = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&db=pubmed&id={self}&cmd=neighbor_score'
-    Lr = get(L)
+    Lr = Sd.res(L)
     Ls = Soup(Lr.text,'html.parser')
     return Ls
 
@@ -56,7 +78,7 @@ class Sd:
       return PMCd
 
     def getpdf(link): # downloads only one pdf file.
-      re_pdflink = get(link, headers=header)
+      re_pdflink = Sd.res(link)
       if not re_pdflink.ok:
         return
       parse_url = urlparse(re_pdflink.url)
@@ -66,14 +88,14 @@ class Sd:
         if i['href'].lower().endswith('.pdf'):
           global PDFlink
           PDFlink = i['href']
-          res = get(urljoin(baseurl,PDFlink), headers=header)
+          res = Sd.res(urljoin(baseurl,PDFlink))
           PDFfile = open(self + '.pdf', 'wb')
           PDFfile.write(res.content)
           PDFfile.close()
           print('Download has been completed')
           break
          
-    re_dlink = get(D) # initial try
+    re_dlink = Sd.res(D) # initial try
     try:
       Dlink = Soup(re_dlink.text,'html.parser').select_one('Url').text
       getpdf(Dlink)
@@ -109,6 +131,11 @@ class Sd:
 
     # brings search results as article title
     S_list = Sd.search(title).select('Id')
+
+    if len(S_list) == 0:
+      print('No result')
+      brexit()
+
     S_list = [i.get_text() for i in S_list]
     id_string = (',').join(map(str,S_list))
     F_data = Sd.fetch(id_string).select('ArticleTitle')
@@ -119,7 +146,7 @@ class Sd:
       if AT.lower() == Ctitle:
         Link = S_list[F_data.index(j)]
         break
-    
+
     # brings 5 most similar articles's ids, titles and abstracts
     L_list = Sd.link(Link).find('linkname', text='pubmed_pubmed_five').find_all_next('id', limit=5)
     L_list = [i.get_text() for i in L_list]
