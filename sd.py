@@ -102,6 +102,7 @@ class Sd:
     title = Ctitle.split(' ',100)
     unwanted = ['and','to','with','not','in','the','of','by','a','an','for','on','from','among'] # they distrupt search
     [title.remove(i) for i in unwanted if i in title]
+    [title.remove(i) for i in unwanted if i in title]
     title = (' ').join(title).replace('\'','').replace(',','').replace(':','').replace(' ','[Title]+')
   
     global Link, F_abstract, F_data, L_list
@@ -129,40 +130,41 @@ class Sd:
     F_abstract = [i.get_text() for i in F_abstract]
   
 Sd.sd(paste())
-
-fork = input('Open in web, See similar 5 results(w/s): ')
-print()
-if fork == 'w':
-  Sd.similar(Link)
-  new = input('''To search another press 'y' or press Enter to continue: ''')
+while True:
+  fork = input('Open in web, See similar 5 results(w/s): ')
   print()
-  if new == 'y':
-    Sd.sd(paste())
-
-while fork == 's' or new == '':
-  for j in F_data:
-    AT = j.get_text()
-    print(F_data.index(j)+1, end=' - ')
-    print(AT)
-  print()
-
-  answer = input('Select one, new search(n),exit(x): ')
-  if answer == 'x':
-    sys.exit()
-  elif answer == 'n':
-    Sd.sd(paste())
-  print(F_abstract[int(answer)-1])
-  
-  ask = input('open in web, download, return to list, exit(w/d/r/x): ')
-  print()
-  if ask == 'w':
-    Sd.pubmed(L_list[int(answer)-1])
-    new = input('''To search another press 'y' or press Enter to return: ''')
+  if fork == 'w':
+    Sd.similar(Link)
+    new = input('''To search another press 'y' or press Enter to continue: ''')
     print()
-    Sd.sd(paste()) if new =='y' else None
-  elif ask == 'd':
-    Sd.download(L_list[int(answer)-1])
-  elif ask == 'r':
-    pass
-  elif ask == 'x':
-    sys.exit()
+    if new == 'y':
+      Sd.sd(paste())
+
+  while fork == 's' or new == '':
+    for j in F_data:
+      AT = j.get_text()
+      print(F_data.index(j)+1, end=' - ')
+      print(AT)
+    print()
+
+    answer = input('Select one, new search(n),exit(x): ')
+    if answer == 'x':
+      sys.exit()
+    elif answer == 'n':
+      Sd.sd(paste())
+    else:
+      print(F_abstract[int(answer)-1])
+      ask = input('open in web, download, return to list, exit(w/d/r/x): ')
+      print()
+
+      if ask == 'w':
+        Sd.pubmed(L_list[int(answer)-1])
+        new = input('''To search another press 'y' or press Enter to return: ''')
+        print()
+        Sd.sd(paste()) if new =='y' else None
+      elif ask == 'd':
+        Sd.download(L_list[int(answer)-1])
+      elif ask == 'r':
+        pass
+      elif ask == 'x':
+        sys.exit()
