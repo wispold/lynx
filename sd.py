@@ -14,15 +14,11 @@ from bs4 import BeautifulSoup as Soup       # pip install beatifulsoup4
 from pyperclip import paste                 # pip install pyperclip
 from urllib.parse import urlparse, urljoin
 from requests import get                    # pip install requests
-import requests.exceptions as rex
+from requests.exceptions import RequestException
 from webbrowser import open as OP
 import scidownl.scihub as sci               # pip install scidownl
 
 F_data, F_abstract, L_list, Link, PDFlink = '','','','',''
-
-def brexit():
-  input('Press Enter to exit')
-  sys.exit()
 
 class Sd:
 
@@ -31,18 +27,9 @@ class Sd:
       r = get(self, headers = {'User-Agent':'Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 YaBrowser/19.7.3.172 Yowser/2.5 Safari/537.36'})
       r.raise_for_status()
       return r
-    except rex.HTTPError as http:
-      print ("Http Error:",http)
-      brexit()
-    except rex.ConnectionError as cne:
-      print ("Error Connecting:",cne)
-      brexit()
-    except rex.Timeout as to:
-      print ("Timeout Error:",to)
-      brexit()
-    except rex.RequestException as err:
+    except RequestException as err:
       print (err)
-      brexit()
+      os.system('pause')
 
   def search(self): # term search results as pmid
     T = f'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term={self}[Title]&retmax=100'
@@ -93,8 +80,9 @@ class Sd:
           PDFfile.write(res.content)
           PDFfile.close()
           print('Download has been completed')
+          os.system('pause')
           break
-         
+      
     re_dlink = Sd.res(D) # initial try
     try:
       Dlink = Soup(re_dlink.text,'html.parser').select_one('Url').text
@@ -105,21 +93,29 @@ class Sd:
     if PDFlink=='': # second try if there's no free article web site
       print('trying for free pmc')
       link = pmc(self)
-      getpdf(link)
-
+      try:
+        getpdf(link)
+      except:
+        pass
+      
     if os.path.exists(self + '.pdf') == False: # third try if there's no free pmc option
       print('trying for sci-hub')
       try:
         DOI = Sd.fetch(self).find('articleid', idtype='doi').text
         scid = sci.SciHub(DOI,self).download(choose_scihub_url_index=3)
-      except AttributeError:
-        print('DOI not found') # well, some articles doesnt exist on web.
+      except Exception as ex:
+        print('Error has ocured' + str(ex))
         pass
+      os.system('pause')
     print()
   
   def sd(self): 
 
     # process copied article title
+    if self == '':
+      print('No title copied')
+      input ('press Enter to make new search')
+      Sd.sd(paste())
     Ctitle = self.strip().replace('\n', ' ').replace('\r','').lower()
     title = Ctitle.split(' ',100)
     unwanted = ['and','to','with','not','in','the','of','by','a','an','for','on','from','among'] # they distrupt search
@@ -133,8 +129,12 @@ class Sd:
     S_list = Sd.search(title).select('Id')
 
     if len(S_list) == 0:
-      print('No result')
-      brexit()
+      print('No result for '+paste())
+      nores = input('Press Enter to exit or make new search(n): ')
+      if nores == 'n':
+        Sd.sd(paste())
+      else:
+        sys.exit()
 
     S_list = [i.get_text() for i in S_list]
     id_string = (',').join(map(str,S_list))
@@ -155,8 +155,13 @@ class Sd:
     F_data = Fetch.select('ArticleTitle')
     F_abstract = Fetch.find_all('abstract')
     F_abstract = [i.get_text() for i in F_abstract]
-  
+
+if not os.path.exists('pdffiles'):
+  os.makedirs('pdffiles')
+  os.chdir('pdffiles')
+
 Sd.sd(paste())
+
 while True:
   fork = input('Open in web, See similar 5 results(w/s): ')
   print()
