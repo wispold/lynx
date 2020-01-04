@@ -82,7 +82,9 @@ class Sd:
           print('Download has been completed')
           os.system('pause')
           break
-      
+
+    os.chdir(path)
+
     re_dlink = Sd.res(D) # initial try
     try:
       Dlink = Soup(re_dlink.text,'html.parser').select_one('Url').text
@@ -107,13 +109,14 @@ class Sd:
         print('Error has ocured' + str(ex))
         pass
       os.system('pause')
+    os.chdir(cwd)
     print()
   
   def sd(self): 
 
     # process copied article title
     if self == '':
-      print('No title copied')
+      print('Clipboard is empty')
       input ('press Enter to make new search')
       Sd.sd(paste())
     Ctitle = self.strip().replace('\n', ' ').replace('\r','').lower()
@@ -156,9 +159,10 @@ class Sd:
     F_abstract = Fetch.find_all('abstract')
     F_abstract = [i.get_text() for i in F_abstract]
 
-if not os.path.exists('pdffiles'):
-  os.makedirs('pdffiles')
-  os.chdir('pdffiles')
+cwd = os.getcwd()
+path = 'PDF files'
+if not os.path.exists(path):
+  os.makedirs(path)
 
 Sd.sd(paste())
 
