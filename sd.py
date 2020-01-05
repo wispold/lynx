@@ -64,6 +64,13 @@ class Sd:
       PMCd = f'https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/{Id}/'
       return PMCd
 
+    def pdfdwn(res):
+      PDFfile = open(self + '.pdf', 'wb')
+      PDFfile.write(res.content)
+      PDFfile.close()
+      print('Download has been completed')
+      os.system('pause')
+
     def getpdf(link): # downloads only one pdf file.
       re_pdflink = Sd.res(link)
       if not re_pdflink.ok:
@@ -71,19 +78,26 @@ class Sd:
       parse_url = urlparse(re_pdflink.url)
       baseurl = f'{parse_url.scheme}://{parse_url.netloc}'
       PDF = Soup(re_pdflink.text,'html.parser')
-      for i in PDF.find_all('a', href=True):
-        if i['href'].lower().endswith('.pdf'):
-          global PDFlink
-          PDFlink = i['href']
-          res = Sd.res(urljoin(baseurl,PDFlink))
-          PDFfile = open(self + '.pdf', 'wb')
-          PDFfile.write(res.content)
-          PDFfile.close()
-          print('Download has been completed')
-          os.system('pause')
+      global PDFlink
+  
+      for i in PDF.find_all('meta', content=True):
+        if i['content'].lower().endswith('.pdf'):
+          PDFlink = i['content']
+          res = Sd.res(PDFlink)
+          pdfdwn(res)
           break
 
+      if PDFlink == '':
+        for i in PDF.find_all('a', href=True):
+          if i['href'].lower().endswith('.pdf'):
+            PDFlink = i['href']
+            res = Sd.res(urljoin(baseurl,PDFlink))
+            pdfdwn(res)
+            break
+
     os.chdir(path)
+
+    print('Download has started')
 
     re_dlink = Sd.res(D) # initial try
     try:
@@ -92,7 +106,7 @@ class Sd:
     except AttributeError:
       pass
     
-    if PDFlink=='': # second try if there's no free article web site
+    if not os.path.exists(self + '.pdf'): # second try if there's no free article web site
       print('trying for free pmc')
       link = pmc(self)
       try:
@@ -100,7 +114,7 @@ class Sd:
       except:
         pass
       
-    if os.path.exists(self + '.pdf') == False: # third try if there's no free pmc option
+    if not os.path.exists(self + '.pdf'): # third try if there's no free pmc option
       print('trying for sci-hub')
       try:
         DOI = Sd.fetch(self).find('articleid', idtype='doi').text
