@@ -34,7 +34,6 @@ class Sd:
   def search(self): # term search results as pmid
     T = f'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term={self}[Title]&retmax=100'
     Tr = Sd.res(T)
-    OP(T)
     Ts = Soup(Tr.text,'html.parser')
     return Ts
 
