@@ -34,6 +34,7 @@ class Sd:
   def search(self): # term search results as pmid
     T = f'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term={self}[Title]&retmax=100'
     Tr = Sd.res(T)
+    OP(T)
     Ts = Soup(Tr.text,'html.parser')
     return Ts
 
@@ -133,11 +134,13 @@ class Sd:
       print('Clipboard is empty')
       input ('press Enter to make new search')
       Sd.sd(paste())
+
     Ctitle = self.strip().replace('\n', ' ').replace('\r','').lower()
     title = Ctitle.split(' ',100)
     unwanted = ['and','to','with','not','in','the','of','by','a','an','for','on','from','among'] # they distrupt search
-    [title.remove(i) for i in unwanted if i in title]
-    [title.remove(i) for i in unwanted if i in title]
+    for i in unwanted:
+      while i in title:
+        title.remove(i)
     title = (' ').join(title).replace('\'','').replace(',','').replace(':','').replace(' ','[Title]+')
   
     global Link, F_abstract, F_data, L_list
