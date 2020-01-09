@@ -1,3 +1,4 @@
+
 #! python 3
 
 # this newbie code, searchs copied title at pubmed, finds exact title if there is more than 1 result and brings 5 most similar articles.
@@ -14,7 +15,7 @@ from bs4 import BeautifulSoup as Soup       # pip install beatifulsoup4
 from pyperclip import paste                 # pip install pyperclip
 from urllib.parse import urlparse, urljoin
 from requests import get                    # pip install requests
-from requests.exceptions import RequestException
+from requests.exceptions import RequestException, HTTPError
 from webbrowser import open as OP
 import scidownl.scihub as sci               # pip install scidownl
 
@@ -22,14 +23,18 @@ F_data, F_abstract, L_list, Link, PDFlink = '','','','',''
 
 class Sd:
 
+
   def res(self):
     try:
       r = get(self, headers = {'User-Agent':'Mozilla/5.0 (Windows NT 6.3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 YaBrowser/19.7.3.172 Yowser/2.5 Safari/537.36'})
       r.raise_for_status()
-      return r
+    except HTTPError:
+      pass
     except RequestException as err:
       print (err)
       os.system('pause')
+    return r
+
 
   def search(self): # term search results as pmid
     T = f'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term={self}[Title]&retmax=100'
@@ -37,11 +42,13 @@ class Sd:
     Ts = Soup(Tr.text,'html.parser')
     return Ts
 
+
   def fetch(self): # id search results as title, abstract etc.
     I = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={self}&retmode=xml'
     Ir = Sd.res(I)
     Is = Soup(Ir.text,'html.parser')
     return Is
+
 
   def link(self): # brings similar articles' ids
     L = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&db=pubmed&id={self}&cmd=neighbor_score'
@@ -53,9 +60,11 @@ class Sd:
     Si = f'https://www.ncbi.nlm.nih.gov/pubmed?linkname=pubmed_pubmed&from_uid={self}'
     OP(Si)
 
+
   def pubmed(self): # opens article's web page
     P = f'https://www.ncbi.nlm.nih.gov/pubmed/{self}'
     OP(P)
+
 
   def download(self): # downloads selected similar title
     D = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&id={self}&cmd=prlinks'
@@ -84,7 +93,8 @@ class Sd:
         if i['content'].lower().endswith('.pdf'):
           PDFlink = i['content']
           res = Sd.res(PDFlink)
-          pdfdwn(res)
+          if res.ok:
+            pdfdwn(res)
           break
 
       if PDFlink == '':
@@ -92,7 +102,8 @@ class Sd:
           if i['href'].lower().endswith('.pdf'):
             PDFlink = i['href']
             res = Sd.res(urljoin(baseurl,PDFlink))
-            pdfdwn(res)
+            if res.ok:
+              pdfdwn(res)
             break
 
     os.chdir(path)
@@ -120,12 +131,13 @@ class Sd:
         DOI = Sd.fetch(self).find('articleid', idtype='doi').text
         scid = sci.SciHub(DOI,self).download(choose_scihub_url_index=3)
       except Exception as ex:
-        print('Error has ocured' + str(ex))
+        print('Error has ocured: ' + str(ex))
         pass
       os.system('pause')
     os.chdir(cwd)
     print()
   
+
   def sd(self): 
 
     # process copied article title
@@ -175,12 +187,15 @@ class Sd:
     F_abstract = Fetch.find_all('abstract')
     F_abstract = [i.get_text() for i in F_abstract]
 
+
 cwd = os.getcwd()
 path = 'PDF files'
 if not os.path.exists(path):
   os.makedirs(path)
 
+
 Sd.sd(paste())
+
 
 while True:
   fork = input('Open in web, See similar 5 results(w/s): ')
